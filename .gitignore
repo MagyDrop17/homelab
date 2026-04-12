@@ -1,0 +1,36 @@
+# Secrets — never commit these
+*.key
+*.pem
+*.pfx
+*.p12
+*-key.yaml
+secrets/
+.secrets/
+*.env
+.env
+.env.*
+
+# Kubeconfigs — these grant cluster admin
+kubeconfig
+*.kubeconfig
+.kube/
+
+# Ansible vault and inventory secrets
+vault_pass
+*.vault
+host_vars/*/vault.yml
+
+# SOPS unencrypted scratch files
+*.dec.yaml
+*.dec.yml
+
+# OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor
+.vscode/
+.idea/
