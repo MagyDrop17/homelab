@@ -6,3 +6,6 @@
   roles:
     - common
     - hostname
+    - ssh-hardening
+    - swap
+    - cgroups

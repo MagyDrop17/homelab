@@ -1,23 +1,43 @@
----
-- name: Set system hostname
-  ansible.builtin.hostname:
-    name: "{{ inventory_hostname }}"
-  tags: [hostname]
+- name: Remove old cloud-init drop-in attempts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/cloud/cloud.cfg.d/99-disable-etc-hosts.cfg
+    - /etc/cloud/cloud.cfg.d/zz-disable-etc-hosts.cfg
+  tags: [hostname, cloud-init]
 
-- name: Ensure /etc/hosts has 127.0.1.1 entry for this host
-  ansible.builtin.lineinfile:
-    path: /etc/hosts
-    regexp: '^127\.0\.1\.1\s+'
-    line: "127.0.1.1 {{ inventory_hostname }}"
-    state: present
-  tags: [hostname]
+- name: Disable cloud-init's update_etc_hosts module
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/zz-no-update-etc-hosts.cfg
+    content: |
+      # Managed by Ansible.
+      # Cloud-init drop-ins REPLACE list values, they don't merge them.
+      # So this file must contain the full cloud_init_modules list from
+      # /etc/cloud/cloud.cfg, minus update_etc_hosts.
+      # If Ubuntu changes the default module list, this file must be updated.
+      cloud_init_modules:
+        - seed_random
+        - bootcmd
+        - write_files
+        - growpart
+        - resizefs
+        - disk_setup
+        - mounts
+        - set_hostname
+        - update_hostname
+        - ca_certs
+        - rsyslog
+        - users_groups
+        - ssh
+        - set_passwords
+    owner: root
+    group: root
+    mode: '0644'
+  register: cloud_init_override
+  tags: [hostname, cloud-init]
 
-- name: Add cluster nodes to /etc/hosts
-  ansible.builtin.blockinfile:
-    path: /etc/hosts
-    marker: "# {mark} ANSIBLE MANAGED CLUSTER HOSTS"
-    block: |
-      {% for host in groups['cluster'] %}
-      {{ hostvars[host].ansible_host }} {{ host }}
-      {% endfor %}
-  tags: [hostname]
+- name: Clean cloud-init instance cache so override takes effect
+  ansible.builtin.command: cloud-init clean --logs
+  when: cloud_init_override.changed
+  tags: [hostname, cloud-init]

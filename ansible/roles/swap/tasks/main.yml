@@ -1,0 +1,28 @@
+---
+- name: Disable swap at runtime
+  ansible.builtin.command: swapoff -a
+  when: ansible_facts['swaptotal_mb'] > 0
+  changed_when: ansible_facts['swaptotal_mb'] > 0
+  tags: [swap]
+
+- name: Remove swap entries from /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^[^#].*\sswap\s'
+    state: absent
+  tags: [swap]
+
+- name: Remove /swap.img file
+  ansible.builtin.file:
+    path: /swap.img
+    state: absent
+  tags: [swap]
+
+- name: Mask dphys-swapfile service if present
+  ansible.builtin.systemd:
+    name: dphys-swapfile
+    enabled: false
+    masked: true
+    state: stopped
+  failed_when: false
+  tags: [swap]

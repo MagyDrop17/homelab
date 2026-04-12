@@ -1,0 +1,24 @@
+---
+- name: Harden sshd_config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+  loop:
+    - { regexp: '^#?PasswordAuthentication',     line: 'PasswordAuthentication no' }
+    - { regexp: '^#?PermitRootLogin',            line: 'PermitRootLogin no' }
+    - { regexp: '^#?PubkeyAuthentication',       line: 'PubkeyAuthentication yes' }
+    - { regexp: '^#?ChallengeResponseAuthentication', line: 'ChallengeResponseAuthentication no' }
+    - { regexp: '^#?X11Forwarding',              line: 'X11Forwarding no' }
+    - { regexp: '^#?MaxAuthTries',               line: 'MaxAuthTries 3' }
+  notify: restart sshd
+  tags: [ssh, hardening]
+
+- name: Remove cloud-init sshd drop-in that re-enables password auth
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    state: absent
+  notify: restart sshd
+  tags: [ssh, hardening]

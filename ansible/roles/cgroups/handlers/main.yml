@@ -1,0 +1,6 @@
+---
+- name: reboot pi
+  ansible.builtin.reboot:
+    msg: "Rebooting to apply cgroup kernel parameters"
+    reboot_timeout: 600
+    test_command: uptime
