@@ -1,0 +1,34 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  tags: [common, packages]
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: yes
+  tags: [common, packages]
+
+- name: Install baseline packages
+  ansible.builtin.apt:
+    name:
+      - vim
+      - curl
+      - wget
+      - git
+      - htop
+      - iotop
+      - tmux
+      - net-tools
+      - dnsutils
+      - jq
+      - rsync
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - python3-pip
+      - unattended-upgrades
+    state: present
+  tags: [common, packages]

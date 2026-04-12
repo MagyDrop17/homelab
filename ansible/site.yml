@@ -1,0 +1,8 @@
+---
+- name: Prepare cluster nodes
+  hosts: cluster
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - hostname
