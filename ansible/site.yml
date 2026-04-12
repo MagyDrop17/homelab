@@ -11,3 +11,5 @@
     - cgroups
     - time-sync
     - nvme
+    - firewall
+    - auto-upgrades

@@ -282,3 +282,86 @@ diagnostic commands that revealed:
 Next time something behaves unexpectedly: **look first, hypothesize
 second**. The 5 minutes spent reading actual state beats 30 minutes
 of trying plausible-sounding fixes.
+
+## Final batch of roles
+
+### `time-sync`
+etcd is extremely sensitive to clock skew between nodes — Raft consensus
+uses timestamps and leases. Drift of more than a few hundred milliseconds
+can cause spurious leader elections and intermittent failures. This role
+sets the timezone, configures systemd-timesyncd to use Spanish NTP pool
+servers, and ensures the service is running.
+
+### `nvme`
+Wipes the existing LINSTOR thinpool (a leftover from a previous storage
+experiment), formats `/dev/nvme0n1` as ext4 labelled `k3s-data`, and
+mounts it at `/var/lib/rancher` — where k3s stores everything. Mount
+options use `noatime` to reduce write amplification.
+
+The role uses `check_mode: false` on every task because dry-run mode
+silently skips `command` modules, which makes the teardown sensors
+useless. For destructive roles, lying about what would happen is worse
+than just running honestly. Always run this role with a known starting
+state — it can recover from a half-broken state but you should always
+know which state you're in.
+
+Mounted by UUID, not device path, so a future hardware change doesn't
+break the fstab entry.
+
+### `firewall`
+ufw with default-deny incoming. Cluster peers (the 3 node IPs from
+inventory) are fully whitelisted because k3s components use dozens of
+ports between nodes — enumerating them all is fragile. SSH and the
+k3s API (6443/tcp) are exposed to the LAN only.
+
+**Critical ordering**: allow rules go *before* enabling ufw. Otherwise
+the moment ufw turns on with default-deny, your active SSH session
+dies before the allow rule registers, and the playbook hangs.
+
+### `auto-upgrades`
+Configures unattended-upgrades to install only security patches
+automatically (`Allowed-Origins` limited to `-security` pockets). No
+automatic reboot — kernel updates require manual reboot because
+reboots in a Kubernetes cluster need to be coordinated (drain pods
+first). This will be handled by `kured` in a later phase.
+
+## Concept: `--limit` for targeted runs
+
+Ansible's `--limit` flag restricts a play to a subset of inventory
+hosts. Useful when you need to fix one node without re-running against
+the whole cluster:
+
+    ansible-playbook site.yml -K --limit rp-node-2
+    ansible-playbook site.yml -K --limit 'rp-node-2,rp-node-3'
+
+This is one of the most-used flags in real ops work. Combine with
+`--tags` to run only specific roles on a subset of hosts.
+
+## Concept: `check_mode: false`
+
+By default, Ansible's `--check` mode skips `command` and `shell`
+modules entirely because Ansible can't introspect what they do.
+Set `check_mode: false` on a task to make it run in both modes
+identically:
+
+    - name: Detect filesystem
+      ansible.builtin.command: blkid -o value -s TYPE /dev/nvme0n1
+      register: nvme_fstype
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+For *sensor* tasks (read-only commands you're using to gather info),
+this is essential — without it, `--check` runs leave variables
+undefined and downstream `when:` conditions evaluate wrong.
+
+For *destructive* tasks in a role that has no safe dry-run mode,
+applying `check_mode: false` everywhere is also reasonable — at least
+the role is honest about its behavior.
+
+## Phase 1 complete
+
+The cluster nodes are now in a known, reproducible, idempotent state.
+A single `ansible-playbook site.yml -K` from a fresh checkout will
+produce identical results on identical hardware. Next: actually
+installing k3s.
