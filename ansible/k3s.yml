@@ -1,0 +1,52 @@
+---
+- name: k3s — bootstrap init node
+  hosts: k3s_init
+  become: true
+  gather_facts: true
+  roles:
+    - k3s
+
+- name: k3s — wait for API server on init node
+  hosts: k3s_init
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for API server to be reachable
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 6443
+        timeout: 180
+
+- name: k3s — join remaining servers
+  hosts: k3s_join
+  become: true
+  gather_facts: true
+  serial: 1
+  roles:
+    - k3s
+
+- name: k3s — fetch kubeconfig to workstation
+  hosts: k3s_init
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Slurp kubeconfig from init node
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_raw
+
+    - name: Ensure local ~/.kube exists
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.kube"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+
+    - name: Write kubeconfig locally with VIP
+      ansible.builtin.copy:
+        content: "{{ kubeconfig_raw.content | b64decode | replace('127.0.0.1', apiserver_vip) | replace('default', 'homelab') }}"
+        dest: "{{ lookup('env', 'HOME') }}/.kube/homelab.yaml"
+        mode: "0600"
+      delegate_to: localhost
+      become: false

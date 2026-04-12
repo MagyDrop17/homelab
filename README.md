@@ -45,8 +45,8 @@ documentation for building and operating the cluster.
 
 ## Phases
 
-0. Workstation prep (WSL2 + toolchain)
-1. OS hardening with Ansible
+0. ✅ Workstation prep (WSL2 + toolchain)
+1. ✅ OS hardening with Ansible
 2. k3s install (HA)
 3. Platform layer (MetalLB, ingress, cert-manager, Longhorn)
 4. Flux bootstrap

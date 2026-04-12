@@ -19,6 +19,9 @@ kubeconfig
 vault_pass
 *.vault
 host_vars/*/vault.yml
+.ansible-vault-pass
+*.vault-pass
+ansible/.vault_pass*
 
 # SOPS unencrypted scratch files
 *.dec.yaml

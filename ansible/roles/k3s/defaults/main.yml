@@ -1,0 +1,7 @@
+---
+k3s_channel: v1.31
+k3s_version: ""
+apiserver_vip_interface: eth0
+kube_vip_version: v0.8.7
+cluster_cidr: 10.42.0.0/16
+service_cidr: 10.43.0.0/16

@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+token: "{{ k3s_token }}"
+{% if inventory_hostname in groups['k3s_init'] %}
+cluster-init: true
+{% else %}
+server: "https://{{ hostvars[groups['k3s_init'][0]].ansible_host }}:6443"
+{% endif %}
+tls-san:
+  - "{{ apiserver_vip }}"
+{% for host in groups['cluster'] %}
+  - "{{ hostvars[host].ansible_host }}"
+{% endfor %}
+node-ip: "{{ ansible_host }}"
+disable:
+  - traefik
+  - servicelb
+write-kubeconfig-mode: "0640"
+cluster-cidr: "{{ cluster_cidr }}"
+service-cidr: "{{ service_cidr }}"
