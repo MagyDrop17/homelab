@@ -9,3 +9,5 @@
     - ssh-hardening
     - swap
     - cgroups
+    - time-sync
+    - nvme

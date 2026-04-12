@@ -1,0 +1,35 @@
+---
+- name: Set timezone
+  community.general.timezone:
+    name: Europe/Madrid
+  tags: [time, timezone]
+
+- name: Ensure /etc/systemd/timesyncd.conf.d directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/timesyncd.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: [time, ntp]
+
+- name: Configure systemd-timesyncd NTP servers
+  ansible.builtin.copy:
+    dest: /etc/systemd/timesyncd.conf.d/cluster-ntp.conf
+    content: |
+      # Managed by Ansible
+      [Time]
+      NTP=0.es.pool.ntp.org 1.es.pool.ntp.org 2.es.pool.ntp.org 3.es.pool.ntp.org
+      FallbackNTP=ntp.ubuntu.com
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart timesyncd
+  tags: [time, ntp]
+
+- name: Enable and start systemd-timesyncd
+  ansible.builtin.systemd:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+  tags: [time, ntp]
