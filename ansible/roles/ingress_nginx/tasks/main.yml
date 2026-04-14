@@ -1,0 +1,63 @@
+---
+- name: Add ingress-nginx helm repo
+  kubernetes.core.helm_repository:
+    name: ingress-nginx
+    repo_url: https://kubernetes.github.io/ingress-nginx
+    state: present
+
+- name: Install ingress-nginx via Helm
+  kubernetes.core.helm:
+    name: ingress-nginx
+    chart_ref: ingress-nginx/ingress-nginx
+    chart_version: "{{ ingress_nginx_chart_version }}"
+    release_namespace: "{{ ingress_nginx_namespace }}"
+    create_namespace: true
+    state: present
+    wait: true
+    wait_timeout: 5m
+    values:
+      controller:
+        kind: Deployment
+        replicaCount: 2
+        service:
+          type: LoadBalancer
+          annotations:
+            metallb.universe.tf/loadBalancerIPs: "{{ ingress_nginx_loadbalancer_ip }}"
+        ingressClassResource:
+          name: nginx
+          default: true
+        config:
+          use-forwarded-headers: "true"
+          compute-full-forwarded-for: "true"
+          proxy-body-size: "50m"
+        metrics:
+          enabled: false
+        admissionWebhooks:
+          enabled: true
+
+- name: Wait for ingress-nginx controller to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ ingress_nginx_namespace }}"
+    name: ingress-nginx-controller
+  register: ingress_ctrl
+  retries: 30
+  delay: 10
+  until:
+    - ingress_ctrl.resources | length > 0
+    - ingress_ctrl.resources[0].status.readyReplicas | default(0) | int >= 1
+
+- name: Wait for LoadBalancer IP assignment
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    namespace: "{{ ingress_nginx_namespace }}"
+    name: ingress-nginx-controller
+  register: ingress_svc
+  retries: 20
+  delay: 5
+  until:
+    - ingress_svc.resources | length > 0
+    - ingress_svc.resources[0].status.loadBalancer.ingress is defined
+    - ingress_svc.resources[0].status.loadBalancer.ingress | length > 0

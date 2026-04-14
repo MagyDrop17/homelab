@@ -1,0 +1,4 @@
+---
+ingress_nginx_chart_version: "4.11.3"
+ingress_nginx_namespace: "ingress-nginx"
+ingress_nginx_loadbalancer_ip: "192.168.1.241"

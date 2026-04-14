@@ -1,0 +1,5 @@
+---
+metallb_chart_version: "0.14.9"
+metallb_namespace: "metallb-system"
+metallb_ip_pool_start: "192.168.1.241"
+metallb_ip_pool_end: "192.168.1.250"

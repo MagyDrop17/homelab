@@ -16,3 +16,14 @@ k3s_token: !vault |
           30636336333135333332356235613839316335326361303931393133646333653462316238646464
           32376163616430623665313039616532643065643136353564656163303537656436613966386133
           62623365373263346266
+
+metallb_chart_version: "0.14.9"
+metallb_namespace: "metallb-system"
+metallb_ip_pool_start: "192.168.1.241"
+metallb_ip_pool_end: "192.168.1.250"
+
+
+ingress_nginx_chart_version: "4.11.3"
+ingress_nginx_namespace: "ingress-nginx"
+ingress_nginx_loadbalancer_ip: "192.168.1.241"
+

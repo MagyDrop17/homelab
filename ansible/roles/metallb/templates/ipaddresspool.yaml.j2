@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: homelab-pool
+  namespace: {{ metallb_namespace }}
+spec:
+  addresses:
+    - {{ metallb_ip_pool_start }}-{{ metallb_ip_pool_end }}
+  autoAssign: true
+  avoidBuggyIPs: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: homelab-l2
+  namespace: {{ metallb_namespace }}
+spec:
+  ipAddressPools:
+    - homelab-pool
