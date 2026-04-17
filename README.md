@@ -54,3 +54,4 @@ documentation for building and operating the cluster.
 6. Identity, VPN, apps
 7. Observability + backups
 # Flux source: Forgejo (self-hosted)
+# Flux source: Forgejo (self-hosted)
