@@ -56,7 +56,7 @@ spec:
         database:
           DB_TYPE: sqlite3
         service:
-          DISABLE_REGISTRATION: false
+          DISABLE_REGISTRATION: true
         session:
           PROVIDER: memory
         cache:
