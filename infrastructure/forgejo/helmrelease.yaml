@@ -1,0 +1,77 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: forgejo
+  namespace: forgejo
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: forgejo
+      version: "15.0.x"
+      sourceRef:
+        kind: HelmRepository
+        name: forgejo
+        namespace: flux-system
+  values:
+    image:
+      rootless: true
+
+    service:
+      http:
+        type: ClusterIP
+        port: 3000
+      ssh:
+        type: LoadBalancer
+        port: 22
+
+    ingress:
+      enabled: true
+      className: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: ca-issuer
+      hosts:
+        - host: git.homelab.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: forgejo-tls
+          hosts:
+            - git.homelab.local
+
+    persistence:
+      enabled: true
+      storageClass: longhorn
+      size: 10Gi
+
+    gitea:
+      config:
+        server:
+          DOMAIN: git.homelab.local
+          ROOT_URL: https://git.homelab.local
+          SSH_DOMAIN: git.homelab.local
+          SSH_PORT: 22
+          LFS_START_SERVER: true
+        database:
+          DB_TYPE: sqlite3
+        service:
+          DISABLE_REGISTRATION: false
+        session:
+          PROVIDER: memory
+        cache:
+          ADAPTER: memory
+        queue:
+          TYPE: level
+
+    postgresql:
+      enabled: false
+
+    postgresql-ha:
+      enabled: false
+
+    redis:
+      enabled: false
+
+    redis-cluster:
+      enabled: false
