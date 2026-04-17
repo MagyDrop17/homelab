@@ -1,10 +1,19 @@
 ---
-- name: Phase 3 — Platform layer
+- name: Phase 3a — Node-level prep for Longhorn
+  hosts: cluster
+  become: true
+  gather_facts: true
+  roles:
+    - longhorn_prereqs
+
+- name: Phase 3b — Platform layer (in-cluster)
   hosts: localhost
-  gather_facts: false
   connection: local
+  gather_facts: false
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
   roles:
     - metallb
     - ingress_nginx
+    - cert_manager
+    - longhorn

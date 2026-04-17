@@ -1,0 +1,59 @@
+---
+- name: Install Longhorn node prerequisites
+  ansible.builtin.apt:
+    name:
+      - open-iscsi
+      - nfs-common
+      - util-linux
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Remove multipath-tools if present
+  ansible.builtin.apt:
+    name: multipath-tools
+    state: absent
+    purge: true
+
+- name: Ensure iscsi_tcp kernel module is loaded at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/longhorn.conf
+    content: |
+      # Ansible managed — Longhorn iSCSI prerequisites
+      iscsi_tcp
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Load iscsi_tcp module now
+  community.general.modprobe:
+    name: iscsi_tcp
+    state: present
+    persistent: present
+
+- name: Enable and start iscsid service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: started
+
+- name: Ensure Longhorn data directory exists on NVMe
+  ansible.builtin.file:
+    path: "{{ longhorn_data_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Verify data directory is on the NVMe filesystem
+  ansible.builtin.command: "findmnt -n -o SOURCE --target {{ longhorn_data_path }}"
+  register: data_path_mount
+  changed_when: false
+
+- name: Fail if data directory landed on the SD card (root fs)
+  ansible.builtin.fail:
+    msg: >-
+      {{ longhorn_data_path }} resolves to {{ data_path_mount.stdout }},
+      which looks like the SD card root. Check that /var/lib/rancher is
+      mounted on the NVMe from Phase 1.
+  when: "'nvme' not in data_path_mount.stdout and 'mmcblk' in data_path_mount.stdout"

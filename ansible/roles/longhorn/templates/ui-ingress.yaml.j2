@@ -1,0 +1,38 @@
+# {{ ansible_managed }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: longhorn-ui-basic-auth
+  namespace: {{ longhorn_namespace }}
+type: Opaque
+data:
+  auth: "{{ longhorn_ui_htpasswd_b64 }}"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ui
+  namespace: {{ longhorn_namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: ca-issuer
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: longhorn-ui-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Longhorn UI — Homelab"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ longhorn_ui_host }}
+      secretName: longhorn-ui-tls
+  rules:
+    - host: {{ longhorn_ui_host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: longhorn-frontend
+                port:
+                  number: 80

@@ -1,0 +1,7 @@
+---
+cert_manager_chart_version: "v1.16.2"
+cert_manager_namespace: "cert-manager"
+ca_common_name: "daniel nebula.cat Homelab Root CA"
+ca_organization: "nebula.cat"
+ca_duration: "87600h"
+ca_renew_before: "720h"

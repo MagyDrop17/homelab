@@ -27,3 +27,23 @@ ingress_nginx_chart_version: "4.11.3"
 ingress_nginx_namespace: "ingress-nginx"
 ingress_nginx_loadbalancer_ip: "192.168.1.241"
 
+cert_manager_chart_version: "v1.16.2"
+cert_manager_namespace: "cert-manager"
+ca_common_name: "daniel nebula.cat Homelab Root CA"
+ca_organization: "nebula.cat"
+ca_duration: "87600h"   # 10 years
+ca_renew_before: "720h" # 30 days before expiry
+
+longhorn_chart_version: "1.7.2"
+longhorn_namespace: "longhorn-system"
+longhorn_data_path: "/var/lib/rancher/longhorn"
+longhorn_default_replica_count: 3
+longhorn_ui_host: "longhorn.nebula.cat"
+longhorn_ui_basic_auth_user: "admin"
+longhorn_ui_basic_auth_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          61323437663233343266636466303963346437376262613835623236306531643531646333643637
+          6439363330623966383731643264633239393464303033340a386232343530373232343933316466
+          61386634636336613337373030663961316666646366326238333163363636383433376235383030
+          6634636131633863610a306662393034343833653636653937666533373761386432373964386432
+          3863

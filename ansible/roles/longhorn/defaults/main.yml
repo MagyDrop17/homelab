@@ -1,0 +1,7 @@
+---
+longhorn_chart_version: "1.7.2"
+longhorn_namespace: "longhorn-system"
+longhorn_data_path: "/var/lib/rancher/longhorn"
+longhorn_default_replica_count: 3
+longhorn_ui_host: "longhorn.nebula.cat"
+longhorn_ui_basic_auth_user: "admin"

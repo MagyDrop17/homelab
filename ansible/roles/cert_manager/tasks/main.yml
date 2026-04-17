@@ -1,0 +1,109 @@
+---
+- name: Add jetstack helm repo
+  kubernetes.core.helm_repository:
+    name: jetstack
+    repo_url: https://charts.jetstack.io
+    state: present
+
+- name: Install cert-manager via Helm
+  kubernetes.core.helm:
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    chart_version: "{{ cert_manager_chart_version }}"
+    release_namespace: "{{ cert_manager_namespace }}"
+    create_namespace: true
+    state: present
+    wait: true
+    wait_timeout: 5m
+    values:
+      crds:
+        enabled: true
+      global:
+        leaderElection:
+          namespace: "{{ cert_manager_namespace }}"
+      prometheus:
+        enabled: false
+
+- name: Wait for cert-manager controller to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ cert_manager_namespace }}"
+    name: cert-manager
+  register: cm_ctrl
+  retries: 30
+  delay: 10
+  until:
+    - cm_ctrl.resources | length > 0
+    - cm_ctrl.resources[0].status.readyReplicas | default(0) | int >= 1
+
+- name: Wait for cert-manager webhook to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ cert_manager_namespace }}"
+    name: cert-manager-webhook
+  register: cm_webhook
+  retries: 30
+  delay: 10
+  until:
+    - cm_webhook.resources | length > 0
+    - cm_webhook.resources[0].status.readyReplicas | default(0) | int >= 1
+
+- name: Wait for cert-manager CA injector to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ cert_manager_namespace }}"
+    name: cert-manager-cainjector
+  register: cm_cainjector
+  retries: 30
+  delay: 10
+  until:
+    - cm_cainjector.resources | length > 0
+    - cm_cainjector.resources[0].status.readyReplicas | default(0) | int >= 1
+
+- name: Render CA bootstrap manifests
+  ansible.builtin.set_fact:
+    ca_bootstrap_yaml: "{{ lookup('template', 'bootstrap-ca.yaml.j2') }}"
+
+- name: Apply selfSigned ClusterIssuer (bootstrap)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ (ca_bootstrap_yaml | from_yaml_all | list)[0] }}"
+
+- name: Apply root CA Certificate
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ (ca_bootstrap_yaml | from_yaml_all | list)[1] }}"
+
+- name: Wait for root CA Secret to be populated
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ cert_manager_namespace }}"
+    name: homelab-root-ca-key-pair
+  register: ca_secret
+  retries: 30
+  delay: 5
+  until:
+    - ca_secret.resources | length > 0
+    - ca_secret.resources[0].data['tls.crt'] is defined
+
+- name: Apply ca-issuer ClusterIssuer
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ (ca_bootstrap_yaml | from_yaml_all | list)[2] }}"
+
+- name: Wait for ca-issuer to be Ready
+  kubernetes.core.k8s_info:
+    api_version: cert-manager.io/v1
+    kind: ClusterIssuer
+    name: ca-issuer
+  register: ca_issuer
+  retries: 20
+  delay: 5
+  until:
+    - ca_issuer.resources | length > 0
+    - ca_issuer.resources[0].status.conditions is defined
+    - (ca_issuer.resources[0].status.conditions | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length) > 0
