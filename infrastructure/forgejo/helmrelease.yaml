@@ -16,7 +16,8 @@ spec:
   values:
     image:
       rootless: true
-
+      strategy:
+        type: Recreate
     service:
       http:
         type: ClusterIP
