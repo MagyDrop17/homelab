@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lldap-http
+  namespace: lldap
+  labels:
+    app: lldap
+spec:
+  type: ClusterIP
+  selector:
+    app: lldap
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lldap-ldap
+  namespace: lldap
+  labels:
+    app: lldap
+spec:
+  type: ClusterIP
+  selector:
+    app: lldap
+  ports:
+    - name: ldap
+      port: 389
+      targetPort: ldap

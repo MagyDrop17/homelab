@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lldap
+  namespace: lldap
+  labels:
+    app: lldap
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: lldap
+  template:
+    metadata:
+      labels:
+        app: lldap
+    spec:
+      containers:
+        - name: lldap
+          image: lldap/lldap:2026-02-27
+          ports:
+            - name: ldap
+              containerPort: 3890
+              protocol: TCP
+            - name: http
+              containerPort: 17170
+              protocol: TCP
+          env:
+            - name: TZ
+              value: "Europe/Madrid"
+            - name: LLDAP_LDAP_BASE_DN
+              value: "dc=homelab,dc=local"
+            - name: LLDAP_LDAP_USER_DN
+              value: "admin"
+            - name: LLDAP_HTTP_URL
+              value: "https://ldap.homelab.local"
+          envFrom:
+            - secretRef:
+                name: lldap-credentials
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          livenessProbe:
+            tcpSocket:
+              port: ldap
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: lldap-data
